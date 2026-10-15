@@ -6,6 +6,7 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rd;
     private Animator animator;
     private Keyboard keyboard;
+    private PlayerHealth playerHealth;
 
     public float speed = 5f;
     public float jumpForce = 7f;
@@ -15,6 +16,7 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+        playerHealth = GetComponent<PlayerHealth>();
         rd = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
 
@@ -38,6 +40,14 @@ public class PlayerController : MonoBehaviour
 
         if (keyboard == null)
             return;
+
+        
+        if (playerHealth != null && playerHealth.IsKnockedBack)
+        {
+            animator.SetFloat("Speed", 0f);
+            return;
+        }
+
 
         // Movimiento horizontal
         float move = 0f;
