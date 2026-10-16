@@ -1,11 +1,12 @@
+using System.Collections; // Necesario para IEnumerator
 using UnityEngine;
 
 public class EnemyPatrow : MonoBehaviour
 {
     [Header("Ajustes de Movimiento")]
     public float speed = 2f;
-    private bool movingRight = false ;
-
+    public bool canMove = true; // <-- Controla si puede moverse o no
+    private bool movingRight = false;
 
     [Header("Detector")]
     public Transform groundCheck;
@@ -15,17 +16,21 @@ public class EnemyPatrow : MonoBehaviour
 
     private Rigidbody2D rb;
 
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();    
     }
 
-    // Update is called once per frame
     void Update()
     {
-        rb.velocity = new Vector2(movingRight ? speed : -speed, rb.velocity.y);
+        // Si NO puede moverse (porque está herido o muerto), frenamos en X y no hacemos nada más
+        if (!canMove)
+        {
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            return;
+        }
+
+        rb.linearVelocity = new Vector2(movingRight ? speed : -speed, rb.linearVelocity.y);
         Vector2 direction = movingRight ? Vector2.right : Vector2.left;
 
         RaycastHit2D groundAhead = Physics2D.Raycast(groundCheck.position, Vector2.down, distanceToGround, groundLayer);
@@ -37,6 +42,19 @@ public class EnemyPatrow : MonoBehaviour
         }
     }
 
+    // Función para congelar al enemigo durante el golpe
+    public void FreezeMovement(float duration)
+    {
+        StartCoroutine(FreezeRoutine(duration));
+    }
+
+    private IEnumerator FreezeRoutine(float duration)
+    {
+        canMove = false;
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // Frena en seco
+        yield return new WaitForSeconds(duration);   // Espera a que pase la animación de daño
+        canMove = true;                              // Vuelve a patrullar
+    }
 
     void Flip()
     {
@@ -52,7 +70,6 @@ public class EnemyPatrow : MonoBehaviour
         {
             Gizmos.color = Color.red;
             Gizmos.DrawRay(groundCheck.position, Vector2.down * distanceToGround);
-
         }
         Vector2 direction = movingRight ? Vector2.right : Vector2.left;
         Gizmos.color = Color.blue;
