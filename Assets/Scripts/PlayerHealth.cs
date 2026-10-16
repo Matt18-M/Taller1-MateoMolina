@@ -1,121 +1,112 @@
-
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class PlayerHealth : MonoBehaviour
 {
-    // Cantidad de vidas del jugador
     [Header("Vidas")]
     public int maxHealth = 3;
     private int currentHealth;
     public int CurrentHealth => currentHealth;
 
-    // Configuración del daño y del empujón
     [Header("Daño y rechazo")]
     public float invulnerabilityTime = 1f;
-    public float knockbackForce = 8f;
+    public float knockbackForce = 6f;
     public float knockbackDuration = 0.2f;
 
-    // Componentes del jugador
     private Rigidbody2D rb;
     private Animator animator;
-
-    // Controlan si el jugador es invulnerable
-    // o está recibiendo el empujón
+    private SpriteRenderer spriteRenderer;
     private bool isInvulnerable;
     private bool isKnockedBack;
 
-    // Permite que PlayerController consulte si hay empujón
     public bool IsKnockedBack => isKnockedBack;
 
     void Start()
     {
-        // Obtener los componentes del mismo objeto Player
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-
-        // Iniciar las vidas con el valor máximo
+        animator = GetComponentInChildren<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         currentHealth = maxHealth;
     }
 
-    // Detectar la colisión física con un enemigo
+    // Detección física directa contra enemigos
     void OnCollisionEnter2D(Collision2D collision)
     {
-        // Ignorar la colisión si no es un enemigo,
-        // si hay invulnerabilidad o si no quedan vidas
-        if (!collision.gameObject.CompareTag("Enemy") ||
-            isInvulnerable || currentHealth <= 0)
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            RecibirDanio(collision.transform, 1);
+        }
+    }
+
+    // Gestión del daño recibido: descuenta vida, activa feedback visual, animación e inmunidad
+    public void RecibirDanio(Transform atacante, int cantidad = 1)
+    {
+        if (isInvulnerable || currentHealth <= 0)
             return;
 
-        // Restar una vida al recibir daño
-        currentHealth--;
+        currentHealth -= cantidad;
 
-        // Activar la animación de daño mediante el Trigger "Hurt"
+        // Feedback visual inmediato en color rojo
+        if (spriteRenderer != null)
+        {
+            StartCoroutine(FlashRed());
+        }
+
+        // Activación de la animación de dolor mediante el Trigger Hurt original
         if (animator != null)
-            animator.ResetTrigger("Hurt"); // Reiniciar el Trigger para que se pueda activar nuevamente
+        {
+            animator.ResetTrigger("Hurt");
             animator.SetTrigger("Hurt");
+        }
 
-        // Si las vidas llegan a cero, reiniciar el nivel actual
+        // Reinicio de nivel al quedarse sin vidas
         if (currentHealth <= 0)
         {
-            SceneManager.LoadScene(
-                SceneManager.GetActiveScene().buildIndex
-            );
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             return;
         }
 
-        // Activar un segundo de invulnerabilidad
         StartCoroutine(InvulnerabilityCoroutine());
 
-        // Calcular la dirección contraria al enemigo
-        Vector2 direction =
-            (transform.position - collision.transform.position).normalized;
+        // Dirección del rechazo: empuja hacia los lados para no lanzarlo tan alto
+        Vector2 direction = (transform.position - atacante.position).normalized;
 
-        // Si ambos objetos están alineados horizontalmente,
-        // determinar el lado del empujón usando sus posiciones
-        if (direction.x == 0f)
+        if (Mathf.Abs(direction.x) < 0.1f)
         {
-            direction.x =
-                transform.position.x >= collision.transform.position.x
-                ? 1f : -1f;
+            direction.x = (transform.position.x >= atacante.position.x) ? 1f : -1f;
         }
 
-        // Aplicar el empujón al jugador
         StartCoroutine(KnockbackCoroutine(direction));
     }
 
-    // Impedir que el jugador reciba daño durante un segundo
+    // Parpadeo rojo visual que confirma el daño en pantalla
+    private IEnumerator FlashRed()
+    {
+        spriteRenderer.color = Color.red;
+        yield return new WaitForSeconds(0.15f);
+        spriteRenderer.color = Color.white;
+    }
+
+    // Tiempo de inmunidad tras recibir un golpe
     IEnumerator InvulnerabilityCoroutine()
     {
         isInvulnerable = true;
-
-        // Esperar el tiempo configurado en el Inspector
         yield return new WaitForSeconds(invulnerabilityTime);
-
-        // Permitir recibir daño nuevamente
         isInvulnerable = false;
     }
 
-    // Aplicar el rechazo y bloquear temporalmente el movimiento
+    // Aplica el empuje y bloquea el movimiento temporalmente
     IEnumerator KnockbackCoroutine(Vector2 direction)
     {
-        // Avisar al PlayerController que hay un empujón activo
         isKnockedBack = true;
-
-        // Eliminar la velocidad anterior antes del rechazo
         rb.linearVelocity = Vector2.zero;
 
-        // Aplicar fuerza horizontal y un poco de elevación
-        rb.AddForce(
-            new Vector2(direction.x, 0.6f).normalized * knockbackForce,
-            ForceMode2D.Impulse
-        );
+        // Empuje equilibrado (más horizontal y leve rebote vertical)
+        Vector2 force = new Vector2(direction.x * 0.8f, 0.4f).normalized * knockbackForce;
+        rb.AddForce(force, ForceMode2D.Impulse);
 
-        // Mantener el control bloqueado durante el empujón
         yield return new WaitForSeconds(knockbackDuration);
-
-        // Devolver el control del movimiento al jugador
         isKnockedBack = false;
     }
 }
