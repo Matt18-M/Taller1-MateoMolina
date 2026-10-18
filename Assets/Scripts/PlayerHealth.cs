@@ -60,6 +60,18 @@ public class PlayerHealth : MonoBehaviour
             animator.SetTrigger("Hurt");
         }
 
+        // Sacudida de cámara al recibir daño
+        if (CameraShake.Instance != null)
+        {
+            CameraShake.Instance.Sacudir(0.2f, 0.2f);
+        }
+
+        // Reproducir sonido de daño al recibir golpe
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ReproducirSfx(AudioManager.Instance.sonidoDanio);
+        }
+
         // Reinicio de nivel al quedarse sin vidas
         if (currentHealth <= 0)
         {

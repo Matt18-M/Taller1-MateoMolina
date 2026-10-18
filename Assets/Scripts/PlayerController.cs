@@ -11,6 +11,9 @@ public class PlayerController : MonoBehaviour
     public float speed = 5f;
     public float jumpForce = 7f;
 
+    [Header("Efectos visuales")]
+    public GameObject polvoSaltoPrefab;
+
     private bool isGrounded;
     private bool facingRight = true;
 
@@ -93,6 +96,21 @@ public class PlayerController : MonoBehaviour
                 Vector2.up * jumpForce,
                 ForceMode2D.Impulse
             );
+
+            if(AudioManager.Instance != null)
+            {
+                AudioManager.Instance.ReproducirSfx(AudioManager.Instance.sonidoSalto);
+            }
+
+            // Efecto visual de polvo al saltar
+            if (polvoSaltoPrefab != null)
+            {
+                Instantiate(
+                    polvoSaltoPrefab,
+                    transform.position,
+                    Quaternion.identity
+                );
+            }
 
             isGrounded = false;
             animator.SetBool("isJump", true);

@@ -40,6 +40,7 @@ public class PlayerAttack : MonoBehaviour
     }
 
     // Inicia la animación del jugador y programa el daño para cuando la espada baje
+
     void StartAttack()
     {
         if (animator != null)
@@ -47,8 +48,17 @@ public class PlayerAttack : MonoBehaviour
             animator.SetTrigger("Attack");
         }
 
+        // Reproducir sonido de golpe al atacar
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ReproducirSfx(
+                AudioManager.Instance.sonidoGolpe
+            );
+        }
+
         Invoke(nameof(DealDamage), damageDelay);
     }
+
 
     // Detecta enemigos dentro del rango de impacto y les aplica el daño
     void DealDamage()
